@@ -16,6 +16,7 @@ var Game = function(debug) {
     this.backStage = new PIXI.DisplayObjectContainer();
     this.world = new PIXI.DisplayObjectContainer();
     this.camera = null;
+    this.cameraStage = new PIXI.DisplayObjectContainer();
     this.entities = [];
     this.solids = [];
 
@@ -27,6 +28,8 @@ Game.prototype = {
     init: function(container) {
         Util.log("Game initializing");
         this.state = this.STATES.LOAD;
+        // Set proper pixel scaling
+        PIXI.scaleModes.DEFAULT = PIXI.scaleModes.NEAREST;
         // Set stage and renderer
         this.stage = new PIXI.Stage(this.background);
         this.renderer = PIXI.autoDetectRenderer(this.width, this.height);
@@ -36,6 +39,7 @@ Game.prototype = {
         // World & camera
         this.stage.addChild(this.backStage);
         this.stage.addChild(this.world);
+        this.stage.addChild(this.cameraStage);
         this.camera = new Camera(this, this.width, this.height);
         // this.stage.addChild(this.entitiesContainer);
         // this.stage.addChild(this.solidsContainer);
@@ -53,7 +57,7 @@ Game.prototype = {
     },
 
     handleKeyDown: function(self, e) {
-        Util.log("down: " + e.keyIdentifier + " ("+e.keyCode+")");
+        Util.log("down: " + e.keyIdentifier + " ("+e.keyCode+")", 1);
         self.keysDown[e.keyCode] = true;
         // Suppress default action of arrow keys
         if ([37,38,39,40].indexOf(e.keyCode) > -1)
@@ -73,13 +77,14 @@ Game.prototype = {
     },
 
     handleKeyPress: function(self, e) {
-        Util.log("press: " + e.keyIdentifier + " ("+e.keyCode+")");
+        Util.log("press: " + e.keyIdentifier + " ("+e.keyCode+")", 1);
 
         // if (self.player) // why does .prototype not work? (using .__proto__)
         //     self.player.__proto__.handleKeyPressed.call(self.player, e.keyCode);
     },
 
     addEntity: function(entity) {
+        entity.index = this.entities.length;
         this.entities.push(entity);
         // this.entitiesContainer.addChild(entity.sprite);
         this.world.addChild(entity.sprite);
@@ -87,6 +92,7 @@ Game.prototype = {
     },
 
     addSolid: function(solid) {
+        solid.index = this.solids.length;
         this.solids.push(solid);
         // this.solidsContainer.addChild(solid.sprite);
         this.world.addChild(solid.sprite);
@@ -106,26 +112,47 @@ Game.prototype = {
         Util.log("Game started");
         this.state = this.STATES.PLAY;
 
+        // Background
         var backtex = PIXI.Texture.fromImage("img/background.png");
         this.background = new PIXI.TilingSprite(backtex, this.width, this.height);
-        this.background.tileScale.x = 2;
-        this.background.tileScale.y = 2;
+        this.background.tileScale.x = 4;
+        this.background.tileScale.y = 4;
         this.backStage.addChild(this.background);
-
-        this.player = new Player(this).init();
+        // Enemies
+        var numEnemies = 1000;
+        for (var i=0; i<numEnemies; i++) {
+            var pos = {
+                    x: Math.random()*this.width,
+                    y: Math.random()*this.height
+                }, enemy = new Enemy(this, pos).init();
+            this.addEntity(enemy);
+        }
+        // Player
+        this.player = new Player(this, {x:this.width/2,y:this.height/2}).init();
         this.addEntity(this.player);
+
+        // Activate zombies
+        // var self = this;
+        // setTimeout(function() {
+        //     for (var i=0; i<numEnemies; i++) {
+        //         var entity = self.entities[i];
+        //         if (entity !== null && entity.type == "enemy")
+        //             entity.zombieMode();
+        //     }
+        // }, 2000);
     },
 
     animate: function() {
         for (var i in this.entities) {
-            this.entities[i].animate();
+            if (this.entities[i] !== null)
+                this.entities[i].animate();
         }
 
         // Follow player
         if (!this.player) return;
         this.camera.follow(this.player.sprite);
-        this.background.tilePosition.x = this.world.position.x;
-        this.background.tilePosition.y = this.world.position.y;
+        this.background.tilePosition.x = this.world.position.x/4;
+        this.background.tilePosition.y = this.world.position.y/4;
 
         // switch (this.state) {
         //     case this.STATES.LOAD: this.animateLoading(); break;
@@ -171,6 +198,57 @@ Camera.prototype = {
         this.game.world.position.x = this.position.x;
         this.game.world.position.y = this.position.y;
     }
+};
+
+
+var Healthbar = function(game, pos, width, height, maxHealth, health, low) {
+    this.game = game;
+    this.pos = (pos == undefined ? {x:0, y:0} : pos);
+    this.width = (width == undefined ? 100 : width);
+    this.height = (height == undefined ? 24 : height);
+    this.maxHealth = maxHealth; // required
+    this.health = (health == undefined ? maxHealth : health);
+    this.low = (low == undefined ? maxHealth*0.1 : low);
+
+    this.colors = {default:0x31BF24, low:0xBF2424, border:0x000000};
+    this.border = true;
+};
+Healthbar.prototype = {
+
+    init: function() {
+        this.bar = this.draw();
+        this.game.cameraStage.addChild(this.bar);
+        return this;
+    },
+
+    draw: function() {
+        var bar = new PIXI.Graphics();
+        if (this.border) {
+            bar.beginFill(this.colors.border);
+            bar.drawRect(this.pos.x-1,this.pos.y-1,this.width+2,this.height+2);
+            bar.endFill();
+        }
+        var fillColor = (this.health <= this.low ?
+            this.colors.low : this.colors.default);
+        var scale = this.width*(this.health/this.maxHealth);
+        bar.beginFill(fillColor);
+        bar.drawRect(this.pos.x, this.pos.y, scale, this.height);
+        bar.endFill();
+        return bar;
+    },
+
+    setHealth: function(health) {
+        if (this.health <= 0) return;
+        this.health = health;
+        this.game.cameraStage.removeChild(this.bar);
+        this.bar = this.draw();
+        this.game.cameraStage.addChild(this.bar);
+    },
+
+    animate: function() {
+        return;
+    }
+
 };
 
 

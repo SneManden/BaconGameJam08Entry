@@ -2,6 +2,8 @@ var Player = function(game, pos) {
     this.game = game;
     pos = (pos == undefined ? {x:0, y:0} : pos);
     this.pos = {x:pos.x, y:pos.y};
+    this.type = "player";
+    this.index = null;
 
     this.textures = [];
 
@@ -11,8 +13,11 @@ var Player = function(game, pos) {
     // Attributes
     this.walkSpeed = 2;
     this.slashDelay = 50;
-    this.slashTint = 0x6e0000;
-    this.defaultTint = 0xffffff;
+    this.tints = {default:0xffffff, slash:0x6e0000};
+    this.maxHealth = 100;
+    this.health = this.maxHealth;
+    this.range = 50;
+    this.damage = 10;
     // Helper variables
     this.canSlash = true;
 };
@@ -37,29 +42,33 @@ Player.prototype = {
         this.width = this.sprite.width;
         this.height = this.sprite.height;
 
+        // Healthbar
+        this.healthbar = new Healthbar(this.game, {x:10, y:10}, 100, 24,
+            this.maxHealth).init();
+
         return this;
     },
 
-    updatePosition: function(x,y) {
-        this.sprite.position.x += x;
-        this.sprite.position.y += y;
+    updateSpritePosition: function(x,y) {
+        this.sprite.position.x = this.pos.x;
+        this.sprite.position.y = this.pos.y;
     },
 
     // Called every frame
     animate: function() {
         var oldWalkTick = this.walkTicks;
-
-        var position = this.handleMovement(); // New position
-
         // Update position
-        this.updatePosition(position[0]*this.walkSpeed,
-                            position[1]*this.walkSpeed);
+        var position = this.handleMovement(); // New position
+        this.pos.x += position[0]*this.walkSpeed,
+        this.pos.y += position[1]*this.walkSpeed;
+
         // Set animation frame
         if (oldWalkTick != this.walkTicks && this.canSlash) {
             var frame = Math.floor(this.walkTicks/15) % 2 + 1;
             this.sprite.setTexture( this.textures[frame] );
         }
 
+        this.updateSpritePosition();
         this.ticks++;
     },
 
@@ -73,12 +82,23 @@ Player.prototype = {
         // Attack
         if (keyId == 32 && this.canSlash) {
             this.sprite.setTexture( this.textures[3] );
-            this.sprite.tint = this.slashTint;
+            // this.sprite.tint = this.tints.slash;
             this.canSlash = false;
+            // Affect others
+            for (var i=0; i<this.game.entities.length; i++) {
+                var other = this.game.entities[i];
+                if (other === null || other == this) continue;
+                var xdiff = this.pos.x - other.pos.x,
+                    ydiff = this.pos.y - other.pos.y,
+                    dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
+
+                if (dist <= this.range)
+                    other.hit(this.damage);
+            }
             var self = this;
             window.setTimeout(function() {
                 self.sprite.setTexture( self.textures[0] );
-                self.sprite.tint = self.defaultTint;
+                // self.sprite.tint = self.tints.default;
                 self.canSlash = true;
             }, this.slashDelay);
         }
@@ -106,5 +126,31 @@ Player.prototype = {
 
         return position;
     },
+
+    updateHealth: function(x) {
+        this.health += x;
+        this.healthbar.setHealth(this.health);
+        if (this.health <= 0)
+            this.die();
+    },
+
+    hit: function(damage) {
+        this.updateHealth(-damage);
+
+        this.sprite.blendMode = PIXI.blendModes.ADD;
+        this.sprite.tint = this.tints.default;
+        var self = this;
+        setTimeout(function() {
+            self.sprite.blendMode = PIXI.blendModes.NORMAL;
+        }, 30);
+    },
+
+    die: function() {
+        Util.log("Aaaarrrgh, I have failed. (player dies horribly.)");
+        if (this.index === null) Util.log("Could not destroy player");
+        this.game.entities.splice(this.index, 1);
+        this.game.world.removeChild(this.sprite);
+        this.game.player = null;
+    }
 
 };
