@@ -1,0 +1,44 @@
+body {
+    background: #222;
+}
+
+.container {
+    width: 800px;
+    margin: 0 auto;
+}
+
+canvas {
+    margin: 20px auto;
+    border: 2px solid rgba(0,0,0,0.5);
+
+    width: 800px;
+    height: 480px;
+}
+
+h1 {
+    color: #fff;
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+p {
+    color: #fff;
+    margin: 0;
+    font-size: 14px;
+}
+
+footer {
+    text-align: center;
+}
+
+a {
+    color: #6E73F5;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+a:visited {
+    color: #3B41DB;
+}
