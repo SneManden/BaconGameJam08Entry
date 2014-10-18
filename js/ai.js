@@ -3,7 +3,6 @@ var Enemy = function(game, pos) {
     pos = (pos == undefined ? {x:0, y:0} : pos);
     this.pos = {x:pos.x, y:pos.y};
     this.type = "enemy";
-    this.index = null;
 
     this.textures = [];
     this.ticks = 0;
@@ -12,7 +11,7 @@ var Enemy = function(game, pos) {
     this.scale = 2;
     this.zombie = false;
     this.range = 35;
-    this.sight = 250;
+    this.sight = 150;
     this.radius = this.scale * 15;
     this.speeds = {normal:1.0, zombie:1.5};
     this.speed = this.speeds.normal;
@@ -30,6 +29,7 @@ Enemy.prototype = {
     init: function() {
         this.textures.push( PIXI.Texture.fromFrame("enemyStandingNormal") );
         this.textures.push( PIXI.Texture.fromFrame("enemyStandingZombie") );
+        this.textures.push( PIXI.Texture.fromFrame("enemyDead") );
         // Set sprite
         this.sprite = new PIXI.Sprite(this.textures[0]);
         this.sprite.anchor.x = 0.5;
@@ -69,21 +69,20 @@ Enemy.prototype = {
             if (!this.zombie || dist>this.sight) { // Random movement
                 if (this.ticks % this.positionUpdateDelay == 0) {
                     this.target = {
-                        x: Math.cos(Math.random()*2*Math.PI)*this.range,
-                        y: Math.sin(Math.random()*2*Math.PI)*this.range };
+                        x: Math.cos(Math.random()*2*Math.PI)*this.range/5,
+                        y: Math.sin(Math.random()*2*Math.PI)*this.range/5 };
                     this.target = { x:this.pos.x+this.target.x,
                                     y:this.pos.y+this.target.y };
                     this.positionUpdateDelay = Math.floor(Math.random()*60*5);
                 }
-                // if (this.target == null)
-                //     this.target = {x:this.pos.x, y:this.pos.y};
             }
             if (this.target)
                 this.follow(this.target, (this.zombie ? direction : undefined));
         }
 
         // Zombie mode?
-        if (Math.random() < 0.00005) this.zombieMode();
+        // if (this.ticks % 60 == 0 && Math.random() < 0.0035)
+        //     this.zombieMode();
 
         this.updateSpritePosition();
         this.ticks++;
@@ -92,6 +91,9 @@ Enemy.prototype = {
     attack: function(other, direction) {
         if (this.canAttack) {
             other.hit(this.damage);
+            other.pos.x -= direction[0]*this.damage/2;
+            other.pos.y -= direction[1]*this.damage/2;
+
             this.canAttack = false;
             var self = this;
             window.setTimeout(function() {
@@ -119,6 +121,7 @@ Enemy.prototype = {
         this.zombie = true;
         this.sprite.setTexture( this.textures[1] );
         this.speed = this.speeds.zombie;
+        Util.log("One more zombie");
     },
 
     normalMode: function() {
@@ -145,9 +148,16 @@ Enemy.prototype = {
     },
 
     die: function() {
-        if (this.index === null) Util.log("Could not destroy entity");
-        this.game.entities[this.index] = null;
+        var index = this.game.entities.indexOf(this);
+        this.game.entities.splice(index, 1);
+        // Set dead sprite
+        this.sprite.setTexture( this.textures[2] );
+        this.sprite.anchor.x = 0.5;
+        this.sprite.anchor.y = 0;
+        // this.sprite.position.x = this.pos.x;
+        this.sprite.position.y -= this.height/8;
         this.game.world.removeChild(this.sprite);
+        this.game.world.addChildAt(this.sprite, 0);
     }
 
 };

@@ -1,6 +1,6 @@
 {
     "frames": {
-        "playerStanding": {
+        "playerStanding0": {
             "frame": {"x":0, "y": 0, "w": 32, "h": 32},
             "rotated": false,
             "trimmed": false,
@@ -21,8 +21,36 @@
             "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
             "sourceSize": {"w:": 32, "h": 32}
         },
-        "playerSlash": {
+        "playerSlash0": {
             "frame": {"x":0, "y": 96, "w": 32, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
+            "sourceSize": {"w:": 32, "h": 32}
+        },
+        "playerStanding1": {
+            "frame": {"x":32, "y": 0, "w": 32, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
+            "sourceSize": {"w:": 32, "h": 32}
+        },
+        "playerWalking11": {
+            "frame": {"x":32, "y": 32, "w": 32, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
+            "sourceSize": {"w:": 32, "h": 32}
+        },
+        "playerWalking12": {
+            "frame": {"x":32, "y": 64, "w": 32, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
+            "sourceSize": {"w:": 32, "h": 32}
+        },
+        "playerSlash1": {
+            "frame": {"x":32, "y": 96, "w": 32, "h": 32},
             "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 32, "h": 32},
@@ -44,6 +72,14 @@
             "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
             "sourceSize": {"w:": 16, "h": 32}
         },
+        "enemyDead": {
+            "frame": {"x":80, "y": 112, "w": 16, "h": 16},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
+            "sourceSize": {"w:": 16, "h": 16}
+        },
+
 
 
         "healthbarGreen": {

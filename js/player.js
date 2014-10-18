@@ -20,16 +20,19 @@ var Player = function(game, pos) {
     this.damage = 10;
     // Helper variables
     this.canSlash = true;
+    this.direction = 0;
 };
 Player.prototype = {
 
     // Setup sprite
     init: function() {
         // Load textures from frames
-        this.textures.push( PIXI.Texture.fromFrame("playerStanding") );
-        for (var i=1; i<=2; i++)
-            this.textures.push( PIXI.Texture.fromFrame("playerWalking0"+i) );
-        this.textures.push( PIXI.Texture.fromFrame("playerSlash") );
+        for (var j=0; j<2; j++) { // j: 4 directional sprites
+            this.textures.push( PIXI.Texture.fromFrame("playerStanding"+j) );
+            for (var i=1; i<=2; i++) // i: 2 walking animation frames 
+                this.textures.push(PIXI.Texture.fromFrame("playerWalking"+j+""+i));
+            this.textures.push( PIXI.Texture.fromFrame("playerSlash"+j) );
+        }
         // Set sprite
         this.sprite = new PIXI.Sprite(this.textures[0]);
         this.sprite.anchor.x = 0.5;
@@ -43,7 +46,7 @@ Player.prototype = {
         this.height = this.sprite.height;
 
         // Healthbar
-        this.healthbar = new Healthbar(this.game, {x:10, y:10}, 100, 24,
+        this.healthbar = new Healthbar(this.game, {x:10, y:10}, this.game.width-20, 5,
             this.maxHealth).init();
 
         return this;
@@ -65,7 +68,7 @@ Player.prototype = {
         // Set animation frame
         if (oldWalkTick != this.walkTicks && this.canSlash) {
             var frame = Math.floor(this.walkTicks/15) % 2 + 1;
-            this.sprite.setTexture( this.textures[frame] );
+            this.sprite.setTexture( this.textures[4*this.direction + frame] );
         }
 
         this.updateSpritePosition();
@@ -75,13 +78,13 @@ Player.prototype = {
     handleKeyUp: function(keyId) {
         // Set standing sprite
         if ([65, 87, 68, 83].indexOf(keyId) != -1)
-            this.sprite.setTexture( this.textures[0] );
+            this.sprite.setTexture( this.textures[4*this.direction + 0] );
     },
 
     handleKeyPressed: function(keyId) {
         // Attack
         if (keyId == 32 && this.canSlash) {
-            this.sprite.setTexture( this.textures[3] );
+            this.sprite.setTexture( this.textures[4*this.direction + 3] );
             // this.sprite.tint = this.tints.slash;
             this.canSlash = false;
             // Affect others
@@ -92,12 +95,15 @@ Player.prototype = {
                     ydiff = this.pos.y - other.pos.y,
                     dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
 
-                if (dist <= this.range)
+                if (dist <= this.range) {
                     other.hit(this.damage);
+                    other.pos.x -= xdiff/dist*this.damage/2;
+                    other.pos.y -= ydiff/dist*this.damage/2;
+                }
             }
             var self = this;
             window.setTimeout(function() {
-                self.sprite.setTexture( self.textures[0] );
+                self.sprite.setTexture( self.textures[4*self.direction + 0] );
                 // self.sprite.tint = self.tints.default;
                 self.canSlash = true;
             }, this.slashDelay);
@@ -105,15 +111,20 @@ Player.prototype = {
     },
 
     handleMovement: function() {
+        // Alter order of these if-statements 
         var position = [0,0];
-        if (this.game.keysDown[65]) // left (A)
-            position[0] -= 1;
-        if (this.game.keysDown[87]) // up (W)
-            position[1] -= 1;
-        if (this.game.keysDown[68]) // right (D)
-            position[0] += 1;
-        if (this.game.keysDown[83]) // down (S)
-            position[1] += 1;
+        if (this.game.keysDown[65]) { // left (A)
+            position[0] -= 1; //this.direction = 2;
+        }
+        if (this.game.keysDown[87]) { // up (W)
+            position[1] -= 1; this.direction = 0;
+        }
+        if (this.game.keysDown[68]) { // right (D)
+            position[0] += 1; //this.direction = 3;
+        }
+        if (this.game.keysDown[83]) { // down (S)
+            position[1] += 1; this.direction = 1;
+        }
         /* Decrease position vector in diagonal direction */
         var sign = [position[0]/Math.abs(position[0]),
                     position[1]/Math.abs(position[1])];
@@ -146,10 +157,10 @@ Player.prototype = {
     },
 
     die: function() {
-        Util.log("Aaaarrrgh, I have failed. (player dies horribly.)");
-        if (this.index === null) Util.log("Could not destroy player");
-        this.game.entities.splice(this.index, 1);
+        Util.log("Aaaarrrgh, I have failed. (Player dies horribly.)");
+        var index = this.game.entities.indexOf(this);
         this.game.world.removeChild(this.sprite);
+        this.game.entities.splice(index, 1);
         this.game.player = null;
     }
 
