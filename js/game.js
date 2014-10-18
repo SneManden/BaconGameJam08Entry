@@ -8,12 +8,16 @@ var Game = function(debug) {
         PLAY: 2
     }
     this.assets = [
-        "img/spritesheet.json"
+        "img/spritesheet.json",
+        "img/background.png"
     ];
+    // this.entitiesContainer = new PIXI.DisplayObjectContainer();
+    // this.solidsContainer = new PIXI.DisplayObjectContainer();
+    this.backStage = new PIXI.DisplayObjectContainer();
+    this.world = new PIXI.DisplayObjectContainer();
+    this.camera = null;
     this.entities = [];
-    this.entitiesContainer = new PIXI.DisplayObjectContainer();
     this.solids = [];
-    this.solidsContainer = new PIXI.DisplayObjectContainer();
 
     this.keysDown = {};
     Util.debug = debug;
@@ -29,10 +33,12 @@ Game.prototype = {
         // Add renderer (canvas element) to container
         container.appendChild(this.renderer.view);
         this.setupKeyboard();
-        // World
-        this.world = new PIXI.DisplayObjectContainer();
-        this.stage.addChild(this.entitiesContainer);
-        this.stage.addChild(this.solidsContainer);
+        // World & camera
+        this.stage.addChild(this.backStage);
+        this.stage.addChild(this.world);
+        this.camera = new Camera(this, this.width, this.height);
+        // this.stage.addChild(this.entitiesContainer);
+        // this.stage.addChild(this.solidsContainer);
         // Loading
         this.loader = new PIXI.AssetLoader(this.assets);
         this.loader.onComplete = partial(this.onAssetsLoaded, this);
@@ -59,21 +65,31 @@ Game.prototype = {
         // Handle that arrow keys are pressed
         if ([37,38,39,40].indexOf(e.keyCode) > -1)
             self.handleKeyPress(self, e);
+
+        if (self.player) // why does .prototype not work? (using .__proto__)
+            self.player.__proto__.handleKeyUp.call(self.player, e.keyCode);
+        if (self.player) // why does .prototype not work? (using .__proto__)
+            self.player.__proto__.handleKeyPressed.call(self.player, e.keyCode);
     },
 
     handleKeyPress: function(self, e) {
         Util.log("press: " + e.keyIdentifier + " ("+e.keyCode+")");
+
+        // if (self.player) // why does .prototype not work? (using .__proto__)
+        //     self.player.__proto__.handleKeyPressed.call(self.player, e.keyCode);
     },
 
     addEntity: function(entity) {
         this.entities.push(entity);
-        this.entitiesContainer.addChild(entity.sprite);
+        // this.entitiesContainer.addChild(entity.sprite);
+        this.world.addChild(entity.sprite);
         Util.log("Entities: " + this.entities.length);
     },
 
     addSolid: function(solid) {
         this.solids.push(solid);
-        this.solidsContainer.addChild(solid.sprite);
+        // this.solidsContainer.addChild(solid.sprite);
+        this.world.addChild(solid.sprite);
         Util.log("Solids: " + this.solids.length);
     },
 
@@ -89,12 +105,27 @@ Game.prototype = {
     start: function() {
         Util.log("Game started");
         this.state = this.STATES.PLAY;
+
+        var backtex = PIXI.Texture.fromImage("img/background.png");
+        this.background = new PIXI.TilingSprite(backtex, this.width, this.height);
+        this.background.tileScale.x = 2;
+        this.background.tileScale.y = 2;
+        this.backStage.addChild(this.background);
+
+        this.player = new Player(this).init();
+        this.addEntity(this.player);
     },
 
     animate: function() {
         for (var i in this.entities) {
             this.entities[i].animate();
         }
+
+        // Follow player
+        if (!this.player) return;
+        this.camera.follow(this.player.sprite);
+        this.background.tilePosition.x = this.world.position.x;
+        this.background.tilePosition.y = this.world.position.y;
 
         // switch (this.state) {
         //     case this.STATES.LOAD: this.animateLoading(); break;
@@ -121,6 +152,25 @@ Game.prototype = {
         this.renderer.render(this.stage);
     }
 
+};
+
+
+var Camera = function(game, width, height) {
+    this.game = game;
+    this.width = width;
+    this.height = height;
+    this.position = {x:0, y:0};
+};
+Camera.prototype = {
+    // <object> must have position attribute with .x and .y attributes
+    follow: function(follower) {
+        // Move camera
+        this.position.x = -follower.position.x + this.width/2;
+        this.position.y = -follower.position.y + this.height/2;
+        // Move world (simulates viewport)
+        this.game.world.position.x = this.position.x;
+        this.game.world.position.y = this.position.y;
+    }
 };
 
 
