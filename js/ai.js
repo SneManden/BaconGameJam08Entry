@@ -7,6 +7,8 @@ var Enemy = function(game, pos) {
     this.textures = [];
     this.ticks = 0;
 
+    this.altitude = 0;
+
     // Variables
     this.scale = 2;
     this.zombie = false;
@@ -33,14 +35,14 @@ Enemy.prototype = {
         // Set sprite
         this.sprite = new PIXI.Sprite(this.textures[0]);
         this.sprite.anchor.x = 0.5;
-        this.sprite.anchor.y = 0.5;
+        this.sprite.anchor.y = 0.55;
         this.sprite.scale.x = this.scale;
         this.sprite.scale.y = this.scale;
         this.sprite.position.x = this.pos.x;
         this.sprite.position.y = this.pos.y;
 
-        this.width = this.sprite.width;
-        this.height = this.sprite.height;
+        this.width = 16;
+        this.height = 32;
 
         return this;
     },
@@ -58,14 +60,16 @@ Enemy.prototype = {
                 dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff),
                 direction = [xdiff/dist, ydiff/dist]; // unit vector
 
-            if (this.zombie && dist <= this.range) // Attack player
-                this.attack(player, direction);
-
-            // Follow player
-            if (this.zombie && dist<this.sight && dist>this.range)
-                this.target = {x:player.pos.x, y:player.pos.y};
-            if (this.zombie && dist<=this.range)
-                this.target = null;
+            if (this.zombie) {
+                // Player is in eye-sight => player is the target
+                if (dist<this.sight && dist>this.range)
+                    this.target = {x:player.pos.x, y:player.pos.y};
+                if (dist<=this.range) // stop if inside range
+                    this.target = null;
+                // Attack player (half range if different altitude)
+                if (dist <= this.range*(1-0.5*Math.abs(this.altitude-player.altitude)))
+                    this.attack(player, direction);
+            }
             if (!this.zombie || dist>this.sight) { // Random movement
                 if (this.ticks % this.positionUpdateDelay == 0) {
                     this.target = {
@@ -76,16 +80,30 @@ Enemy.prototype = {
                     this.positionUpdateDelay = Math.floor(Math.random()*60*5);
                 }
             }
-            if (this.target)
+            if (this.target) // follow target
                 this.follow(this.target, (this.zombie ? direction : undefined));
         }
 
+        this.eject();
+
         // Zombie mode?
-        // if (this.ticks % 60 == 0 && Math.random() < 0.0035)
-        //     this.zombieMode();
+        if (this.ticks % 60 == 0 && Math.random() < 0.0035)
+            this.zombieMode();
 
         this.updateSpritePosition();
         this.ticks++;
+    },
+
+    eject: function() {
+        for (var i in this.game.solids) {
+            var solid = this.game.solids[i];
+            var xdiff = this.pos.x - solid.pos.x,
+                ydiff = this.pos.y - solid.pos.y,
+                dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
+
+            if (dist < this.range + Math.max(solid.width/2, solid.height/2))
+                solid.ejectOther(this, [xdiff, ydiff]);
+        }
     },
 
     attack: function(other, direction) {
@@ -103,6 +121,7 @@ Enemy.prototype = {
     },
 
     follow: function(position, direction) {
+        // If we have arrived at target, clear it
         if (Math.abs(position.x-this.pos.x)<2 && Math.abs(position.y-this.pos.y)<2) {
             this.target = null;
             return;

@@ -1,4 +1,4 @@
-var Game = function(debug) {
+var Game = function(debug, debugLevel) {
     this.background = 0x66ff99;
     this.width = 800; //1024;
     this.height = 480; //576;
@@ -12,10 +12,10 @@ var Game = function(debug) {
         "img/background.png",
         "img/grass.png",
         "img/woodtile.png",
-        "img/black.png"
+        "img/black.png",
+        "img/scene.png",
+        "img/sceneFinal.png"
     ];
-    // this.entitiesContainer = new PIXI.DisplayObjectContainer();
-    // this.solidsContainer = new PIXI.DisplayObjectContainer();
     this.cameraStage = new PIXI.DisplayObjectContainer();
     this.borderHorStage = new PIXI.DisplayObjectContainer();
     this.borderVerStage = new PIXI.DisplayObjectContainer();
@@ -26,15 +26,46 @@ var Game = function(debug) {
     this.solids = [];
 
     this.keysDown = {};
-    Util.debug = debug;
+    Util.debug = (debug == undefined ? false : debug);
+    Util.level = (debugLevel == undefined ? 0 : debugLevel);
 
     this.ticks = 0;
 
     this.scenes = [
         {
             name: "house",
-            border: {left: 0, right: 1600, top: 0, bottom: 1200},
-            background: {img:this.assets[3], tileScale:3}
+            border: {left: 0, right: 1200, top: 0, bottom: 1600},
+            background: {img: this.assets[3], tileScale: 3},
+            playerPosition: {x: 600, y: 1500},
+            scenery: [
+                {
+                    name: "performancestage",
+                    position: {x: 584, y:1488},
+                    width: 768, height: 128,
+                    background: {img: this.assets[6], scale: 4}
+                }
+            ],
+            solids: [
+                // Stage borders
+                {   position: {x: 584, y:1500}, width:  768, height:    8, altitude: 0 },
+                {   position: {x: 200, y:1514}, width:    8, height:   36, altitude: 0 },
+                {   position: {x: 968, y:1514}, width:    8, height:   36, altitude: 0 },
+                {   position: {x: 584, y:1476}, width:  768, height:    8, altitude: 1 },
+                {   position: {x: 200, y:1500}, width:    8, height:   64, altitude: 1 },
+                {   position: {x: 968, y:1500}, width:    8, height:   64, altitude: 1 },
+                // Border solids
+                {   position: {x: -16, y: 800}, width:   32, height: 1600 }, // left
+                {   position: {x:1216, y: 800}, width:   32, height: 1600 }, // right
+                {   position: {x: 600, y: -16}, width: 1200, height:   32 }, // top
+                {   position: {x: 600, y:1616}, width: 1200, height:   32 }  // bottom
+            ],
+            altControls: [
+                {   position: {x:184, y:1566}, width: 32, height: 68, altitude: 0},
+                {   position: {x:216, y:1566}, width: 32, height: 68, altitude: 1},
+                {   position: {x:952, y:1566}, width: 32, height: 68, altitude: 1},
+                {   position: {x:984, y:1566}, width: 32, height: 68, altitude: 0},
+            ]
+
         }
     ];
     this.scene = 0;
@@ -104,7 +135,7 @@ Game.prototype = {
 
     addSolid: function(solid) {
         this.solids.push(solid);
-        this.world.addChild(solid.sprite);
+        // this.world.addChild(solid.sprite);
         Util.log("Solids: " + this.solids.length);
     },
 
@@ -144,6 +175,37 @@ Game.prototype = {
             this.borderSprites.push(borderSprite);
         }
 
+        // Scenery
+        var scenery = scene.scenery[0];
+        var scenerySprite = new PIXI.Sprite.fromImage(scenery.background.img);
+        scenerySprite.anchor.x = 0.5;
+        scenerySprite.anchor.y = 0.125;
+        scenerySprite.position.x = scenery.position.x;
+        scenerySprite.position.y = scenery.position.y;
+        scenerySprite.scale.x = scenery.background.scale;
+        scenerySprite.scale.y = scenery.background.scale;
+        this.world.addChild(scenerySprite);
+
+        // Solids
+        var solids = scene.solids;
+        for (var i=0; i<solids.length; i++) {
+            var solid = solids[i],
+                obst = new Solid(this, solid.position,solid.width,solid.height);
+            if (solid.altitude !== undefined)
+                obst.altitude = solid.altitude;
+            // obst.setSprite();
+            this.addSolid(obst);
+        }
+        // Misc objects
+        var altControls = scene.altControls;
+        for (var i=0; i<altControls.length; i++) {
+            var obj = altControls[i],
+                obst = new AltitudeControl(this, obj.position, obj.width,
+                    obj.height, obj.altitude);
+            // obst.setSprite();
+            this.addSolid(obst);
+        }
+
         // Enemies
         var numEnemies = 500;
         for (var j=0; j<2; j++) {
@@ -157,6 +219,10 @@ Game.prototype = {
                 this.addEntity(enemy);
             }
         }
+
+        // Player
+        this.player = new Player(this, scene.playerPosition).init();
+        this.addEntity(this.player);
     },
 
     start: function() {
@@ -164,10 +230,6 @@ Game.prototype = {
         this.state = this.STATES.PLAY;
 
         this.setScene();
-
-        // Player
-        this.player = new Player(this, {x:this.width/2,y:this.height/2}).init();
-        this.addEntity(this.player);
     },
 
     animate: function() {
@@ -237,6 +299,6 @@ function gameLoop() {
  */
 var game;
 window.onload = function() {
-    game = new Game(true);
+    game = new Game(true, 1);
     game.init(document.querySelector("#canvascontainer"));
 };
