@@ -65,3 +65,57 @@ Door.prototype = {
     }
 
 };
+
+
+
+
+var Button = function(game, pos) {
+    this.game = game;
+    this.pos = (pos == undefined ? {x:0, y:0} : pos);
+    this.pressed = false;
+    this.scale = 2.0;
+    this.range = 50;
+};
+Button.prototype = {
+
+    init: function() {
+        this.textures = {
+            ready: PIXI.Texture.fromFrame("buttonReady"),
+            pressed: PIXI.Texture.fromFrame("buttonPressed")
+        };
+        // Set sprite
+        this.sprite = new PIXI.Sprite(this.textures.ready);
+        this.sprite.anchor.x = 0.5;
+        this.sprite.anchor.y = 0.5;
+        this.sprite.scale.x = this.scale;
+        this.sprite.scale.y = this.scale;
+        this.sprite.position.x = this.pos.x;
+        this.sprite.position.y = this.pos.y;
+
+        return this;
+    },
+
+    animate: function() {
+        var player = this.game.player,
+            dist;
+        if (player) dist = this.dist(player);
+
+        // Open door (space)
+        if (this.game.keysDown[32] && !this.pressed)
+            if (dist < this.range) this.press();
+    },
+
+    press: function() {
+        this.pressed = true;
+        this.sprite.setTexture(this.textures.pressed);
+        this.game.startZombieMode();
+    },
+
+    dist: function(other) {
+        var xdiff = this.pos.x - other.pos.x,
+            ydiff = this.pos.y - other.pos.y,
+            dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
+        return dist;
+    }
+
+}

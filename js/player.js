@@ -14,7 +14,7 @@ var Player = function(game, pos) {
 
     // Attributes
     this.scale = 2;
-    this.speeds = {walk:2, run:5};
+    this.speeds = {walk:2, run:4};
     this.speed = this.speeds.walk;
     this.slashDelay = 50;
     this.tints = {default:0xffffff, slash:0x6e0000};
@@ -27,7 +27,7 @@ var Player = function(game, pos) {
     // Helper variables
     this.canSlash = true;
     this.direction = 1;
-
+    this.frameSpeed = 15;
     this.dead = false;
 };
 Player.prototype = {
@@ -76,15 +76,18 @@ Player.prototype = {
 
         // Set animation frame
         if (oldWalkTick != this.walkTicks && this.canSlash) {
-            var frame = Math.floor(this.walkTicks/15) % 2 + 1;
+            var frame = Math.floor(this.walkTicks/this.frameSpeed) % 2 + 1;
             this.sprite.setTexture( this.textures[4*this.direction + frame] );
         }
 
         // Update stamina
-        if (this.running)
+        if (this.running) {
             this.stamina = Math.max(0, this.stamina-0.2);
-        else
+            this.frameSpeed = 7;
+        } else {
             this.stamina = Math.min(this.maxStamina, this.stamina+0.1);
+            this.frameSpeed = 15;
+        }
 
         this.eject();
 

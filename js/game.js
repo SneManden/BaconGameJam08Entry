@@ -8,7 +8,7 @@ var Game = function(debug, debugLevel) {
         PLAY: 2
     }
     this.assets = [
-        "img/spritesheet.json",
+        "img/playersheet.json",
         "img/background.png",
         "img/grass.png",
         "img/woodtile.png",
@@ -59,6 +59,7 @@ var Game = function(debug, debugLevel) {
             background: {img: this.assets[3], tileScale: 2},
             playerPosition: {x: 550, y: 8},
             vipPosition: {x: 600, y: 1516},
+            buttonPosition: {x: 600, y:800},
             scenery: [
                 {
                     name: "performancestage",
@@ -179,7 +180,8 @@ Game.prototype = {
                "|", "assets: ", this.soundsLoaded);
         if (this.soundsLoaded && this.assetsLoaded) {
             this.loadingBar.destroy();
-            this.start();
+            this.setupMenu();
+            // this.start();
         }
     },
 
@@ -208,10 +210,21 @@ Game.prototype = {
         if (self.player) // why does .prototype not work? (using .__proto__)
             self.player.__proto__.handleKeyPressed.call(self.player, e.keyCode);
 
-        if (e.keyCode == 27) // esc
-            self.pause();
-        if (e.keyCode == 77) // M
-            self.mute();
+        var states = self.STATES;
+        if (self.state == states.PLAY) {
+            if (e.keyCode == 27) // esc
+                self.pause();
+            if (e.keyCode == 77) // M
+                self.mute();
+        } else if (self.state == states.MENU) {
+            if ([13].indexOf(e.keyCode) > -1) // Enter or Space
+                self.start();
+            if (e.keyCode == 77) // M
+                self.mute();
+        } else if ([states.WIN, states.GAMEOVER].indexOf(self.state) > -1) {
+            if ([13].indexOf(e.keyCode) > -1) // Enter or Space
+                self.setupMenu();
+        }
     },
 
     handleKeyPress: function(self, e) {
@@ -221,17 +234,63 @@ Game.prototype = {
     addEntity: function(entity) {
         this.entities.push(entity);
         this.world.addChild(entity.sprite);
-        Util.log("Entities: " + this.entities.length);
+        // Util.log("Entities: " + this.entities.length);
     },
 
     addSolid: function(solid) {
         this.solids.push(solid);
         // this.world.addChild(solid.sprite);
-        Util.log("Solids: " + this.solids.length);
+        // Util.log("Solids: " + this.solids.length);
     },
 
     setupMenu: function() {
         this.state = this.STATES.MENU;
+
+        this.clearAll();
+
+        this.stage.setBackgroundColor(0x77D448);
+
+        var menuSprites = [
+            { position: {x:2*this.width/6, y:3*this.height/5}, frame:"vipStanding0"},
+            { position: {x:3*this.width/6, y:3*this.height/5}, frame:"playerStanding1"},
+            { position: {x:4*this.width/6, y:3*this.height/5+12}, frame:"enemyStandingZombie"},
+        ];
+        var scale = {x:4.0,y:4.0}, anchor = {x:0.5,y:0.5};
+        for (var i in menuSprites) {
+            var sprite = new PIXI.Sprite.fromFrame(menuSprites[i].frame);
+            sprite.scale = scale;
+            sprite.anchor = anchor;
+            sprite.position = menuSprites[i].position;
+            this.cameraStage.addChild(sprite);
+        }
+
+        // TITLE
+        var title = new PIXI.Text("Save Otto Griffis", {font:"bold 40px monospace",
+            fill:"white", stroke:"black", strokeThickness:4});
+        title.anchor = {x:0.5, y:0.5};
+        title.position = {x: this.width/2, y:this.height/8};
+        this.cameraStage.addChild(title);
+        // INSTRUCTIONS
+        var instructions = new PIXI.Text(
+            "Save singer and performer Otto Griffis\n" +
+            "by escorting him safely to the door.\n" +
+            "Do not let any harm be done to the ladies.",
+            {font:"20px monospace", fill:"white",
+            stroke:"black",strokeThickness:2,align:"left"});
+        instructions.anchor = {x:0.5, y:0.0};
+        instructions.position = {x:this.width/2, y:2*this.height/8};
+        this.cameraStage.addChild(instructions);
+        // CONTROLS
+        var space = "        ";
+        var controls = new PIXI.Text(
+            "Movement:       <WASD> " + space + "Pause:      <Esc>\n" +
+            "Run:            <Shift>" + space + "Mute:       <M>\n" +
+            "Combat, action: <Space>" + space + "START GAME: <Enter>",
+            {font:"14px monospace", fill:"white",
+            stroke:"black",strokeThickness:2,align:"left"});
+        controls.anchor = {x:0.5, y:1.0};
+        controls.position = {x: this.width/2, y:15*this.height/16};
+        this.cameraStage.addChild(controls);
     },
 
     pause: function() {
@@ -358,6 +417,10 @@ Game.prototype = {
         this.vip.altitude = 1;
         this.addEntity(this.vip);
 
+        // Zombie button
+        this.button = new Button(this, scene.buttonPosition).init();
+        this.addEntity(this.button);
+
         // Set targets for enemies
         for (var i in this.entities) {
             if (this.entities[i].type == "enemy")
@@ -369,6 +432,9 @@ Game.prototype = {
     },
 
     start: function() {
+        // Clear camera
+        this.clearAll();
+
         Util.log("Game started");
         this.state = this.STATES.PLAY;
 
@@ -405,8 +471,8 @@ Game.prototype = {
                 return 0;
             });
 
-        if (!this.zombieMode && this.ticks >= 60*15)//60*60)
-            this.startZombieMode();
+        // if (!this.zombieMode && this.ticks >= 60*15)//60*60)
+        //     this.startZombieMode();
 
         // Test win
         if (this.saved.indexOf(this.vip) != -1)
@@ -433,13 +499,73 @@ Game.prototype = {
     },
 
     win: function() {
-        Util.log("YOU WIN, woooohooo!");
-        this.pause();
+        this.state = this.STATES.WIN;
+
+        Util.log("YOU LOSE, daaaaarn!");
+        createjs.Sound.stop();
+        
+        this.clearAll();
+
+        this.stage.setBackgroundColor(0x15ED15);
+
+        // You win
+        var wintext = new PIXI.Text("Congratulations!\nYou saved the day.",
+            {font:"bold 40px monospace",
+            fill:"white", stroke:"black", strokeThickness:5, align:"center"});
+        wintext.anchor = {x:0.5, y:1.0};
+        wintext.position = {x: this.width/2, y:this.height/2};
+        this.cameraStage.addChild(wintext);
+        // Restart
+        var restart = new PIXI.Text("Press <Enter> to try again",
+            {font:"bold 20px monospace",
+            fill:"white", stroke:"black", strokeThickness:3});
+        restart.anchor = {x:0.5, y:0.5};
+        restart.position = {x: this.width/2, y:3*this.height/4};
+        this.cameraStage.addChild(restart);
     },
 
     gameover: function() {
+        this.state = this.STATES.GAMEOVER;
+
         Util.log("YOU LOSE, daaaaarn!");
-        this.pause();
+        createjs.Sound.stop();
+        
+        this.clearAll();
+
+        this.stage.setBackgroundColor(0x8C0303);
+
+        // Game over
+        var gameover = new PIXI.Text("GAME OVER", {font:"bold 64px monospace",
+            fill:"white", stroke:"black", strokeThickness:5});
+        gameover.anchor = {x:0.5, y:1.0};
+        gameover.position = {x: this.width/2, y:this.height/2};
+        this.cameraStage.addChild(gameover);
+        // Restart
+        var restart = new PIXI.Text("Press <Enter> to try again",
+            {font:"bold 20px monospace",
+            fill:"white", stroke:"black", strokeThickness:3});
+        restart.anchor = {x:0.5, y:0.5};
+        restart.position = {x: this.width/2, y:3*this.height/4};
+        this.cameraStage.addChild(restart);
+    },
+
+    clearAll: function() {
+        this.player = this.vip = this.button = this.door = null;
+        this.zombieMode = false;
+        this.ticks = 0;
+        this.entities = [];
+        this.solids = [];
+
+        this.clearStage(this.backStage);
+        this.clearStage(this.borderHorStage);
+        this.clearStage(this.borderVerStage);
+        this.clearStage(this.world);
+        this.clearStage(this.cameraStage);
+    },
+
+    clearStage: function(stage) {
+        while (stage.children.length > 0)
+            stage.removeChild(stage.getChildAt(0));
     },
 
     update: function() {

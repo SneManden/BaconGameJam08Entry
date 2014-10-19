@@ -15,27 +15,40 @@
             "sourceSize": {"w:": 16, "h": 16}
         },
         "wallpaper": {
-            "frame": {"x":32, "y": 0, "w": 16, "h": 48},
+            "frame": {"x":64, "y": 0, "w": 16, "h": 48},
             "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 48},
             "sourceSize": {"w:": 16, "h": 48}
         },
         "doorClosed": {
-            "frame": {"x":48, "y": 0, "w": 48, "h": 48},
+            "frame": {"x":80, "y": 0, "w": 48, "h": 48},
             "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 48, "h": 48},
             "sourceSize": {"w:": 48, "h": 48}
         },
         "doorOpened": {
-            "frame": {"x":48, "y": 48, "w": 48, "h": 48},
+            "frame": {"x":80, "y": 48, "w": 48, "h": 48},
             "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 48, "h": 48},
             "sourceSize": {"w:": 48, "h": 48}
         },
-
+        "buttonReady": {
+            "frame": {"x":112, "y": 96, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        },
+        "buttonPressed": {
+            "frame": {"x":96, "y": 96, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        },
 
 
         "vipStanding0": {
@@ -54,6 +67,29 @@
         },
         "vipDead": {
             "frame": {"x":32, "y": 112, "w": 16, "h": 16},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
+            "sourceSize": {"w:": 16, "h": 16}
+        },
+
+
+        "enemyStandingNormal": {
+            "frame": {"x":32, "y": 64, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        },
+        "enemyStandingZombie": {
+            "frame": {"x":16, "y": 64, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        },
+        "enemyDead": {
+            "frame": {"x":0, "y": 80, "w": 16, "h": 16},
             "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
