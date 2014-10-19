@@ -53,7 +53,7 @@ Healthbar.prototype = {
         }
         var fillColor = (this.health <= this.low ?
             this.colors.low : this.colors.default);
-        var scale = this.width*(this.health/this.maxHealth);
+        var scale = this.width*(Math.max(0, this.health)/this.maxHealth);
         bar.beginFill(fillColor);
         bar.drawRect(this.pos.x, this.pos.y, scale, this.height);
         bar.endFill();

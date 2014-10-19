@@ -1,0 +1,41 @@
+{
+    "frames": {
+        "stairL": {
+            "frame": {"x":0, "y": 0, "w": 16, "h": 16},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
+            "sourceSize": {"w:": 16, "h": 16}
+        },
+        "stairR": {
+            "frame": {"x":16, "y": 0, "w": 16, "h": 16},
+            "rotated": true,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
+            "sourceSize": {"w:": 16, "h": 16}
+        },
+
+
+        "vipStanding0": {
+            "frame": {"x":0, "y": 96, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        },
+        "vipStanding1": {
+            "frame": {"x":16, "y": 96, "w": 16, "h": 32},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
+            "sourceSize": {"w:": 16, "h": 32}
+        }
+    },
+
+    "meta": {
+        "image": "spritesheet_misc.png",
+        "format": "RGBA8888",
+        "size": {"w":128, "h":128},
+        "scale": "1"
+    }
+}

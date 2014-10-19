@@ -27,6 +27,8 @@ var Player = function(game, pos) {
     // Helper variables
     this.canSlash = true;
     this.direction = 0;
+
+    this.dead = false;
 };
 Player.prototype = {
 
@@ -109,7 +111,8 @@ Player.prototype = {
             // Affect others
             for (var i=0; i<this.game.entities.length; i++) {
                 var other = this.game.entities[i];
-                if (other === null || other == this) continue;
+                if (other === null || other == this || other == this.game.vip)
+                    continue;
                 var xdiff = this.pos.x - other.pos.x,
                     ydiff = this.pos.y - other.pos.y,
                     dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
@@ -195,11 +198,23 @@ Player.prototype = {
     },
 
     die: function() {
+        if (this.dead) return;
+
+        for (var i in this.game.entities) {
+            var entity = this.game.entities[i];
+            if (entity && entity.type == "enemy") {
+                entity.targets.splice(entity.targets.indexOf(this), 1);
+                entity.target = null;
+            }
+        }
+
         Util.log("Aaaarrrgh, I have failed. (Player dies horribly.)");
         var index = this.game.entities.indexOf(this);
         this.game.world.removeChild(this.sprite);
         this.game.entities.splice(index, 1);
         this.game.player = null;
+
+        this.dead = true;
     }
 
 };

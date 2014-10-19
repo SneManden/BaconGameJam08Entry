@@ -13,7 +13,7 @@ var Enemy = function(game, pos) {
     this.scale = 2;
     this.zombie = false;
     this.range = 35;
-    this.sight = 150;
+    this.sight = 350;
     this.radius = this.scale * 15;
     this.speeds = {normal:1.0, zombie:1.5};
     this.speed = this.speeds.normal;
@@ -25,6 +25,11 @@ var Enemy = function(game, pos) {
     this.health = this.maxHealth;
 
     this.target = null;
+    this.targets = [];
+
+    this.infected = true;
+
+    this.dead = false;
 };
 Enemy.prototype = {
 
@@ -52,46 +57,56 @@ Enemy.prototype = {
         this.sprite.position.y = this.pos.y;
     },
 
-    animate: function() {
-        var player = this.game.player;
-        if (player) {
-            var xdiff = player.pos.x - this.pos.x,
-                ydiff = player.pos.y - this.pos.y,
-                dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff),
-                direction = [xdiff/dist, ydiff/dist]; // unit vector
+    zombieBehavior: function() {
+        if (!this.zombie) return;
 
-            if (this.zombie) {
-                // Player is in eye-sight => player is the target
-                if (dist<this.sight && dist>this.range)
-                    this.target = {x:player.pos.x, y:player.pos.y};
-                if (dist<=this.range) // stop if inside range
-                    this.target = null;
-                // Attack player (half range if different altitude)
-                if (dist <= this.range*(1-0.5*Math.abs(this.altitude-player.altitude)))
-                    this.attack(player, direction);
-            }
-            if (!this.zombie || dist>this.sight) { // Random movement
-                if (this.ticks % this.positionUpdateDelay == 0) {
-                    this.target = {
-                        x: Math.cos(Math.random()*2*Math.PI)*this.range/5,
-                        y: Math.sin(Math.random()*2*Math.PI)*this.range/5 };
-                    this.target = { x:this.pos.x+this.target.x,
-                                    y:this.pos.y+this.target.y };
-                    this.positionUpdateDelay = Math.floor(Math.random()*60*5);
-                }
-            }
-            if (this.target) // follow target
-                this.follow(this.target, (this.zombie ? direction : undefined));
+        for (var i in this.targets) {
+            var other = this.targets[i];
+            if (!other) continue;
+
+            var diff = this.diff(other),
+                dist = Math.sqrt(diff[0]*diff[0] + diff[1]*diff[1]),
+                direction = [diff[0]/dist, diff[1]/dist];
+
+            if (this.target == null && dist<this.sight)
+                this.target = other;
+            if (dist<=this.range*(1-0.5*Math.abs(this.altitude-other.altitude)))
+                this.attack(other, direction);
         }
+    },
+
+    animate: function() {
+        this.zombieBehavior();
+
+        // follow target
+        if (this.target)
+            this.follow({x:this.target.pos.x, y:this.target.pos.y},
+                this.direction(this.target));
 
         this.eject();
 
-        // Zombie mode?
-        if (this.ticks % 60 == 0 && Math.random() < 0.0035)
+        if (this.infected && this.ticks % 60 == 0 && Math.random() < 0.1)//0.0035)
             this.zombieMode();
 
         this.updateSpritePosition();
         this.ticks++;
+    },
+
+    diff: function(other) {
+        var xdiff = other.pos.x - this.pos.x,
+            ydiff = other.pos.y - this.pos.y;
+        return [xdiff, ydiff];
+    },
+
+    dist: function(other) {
+        var diff = this.diff(other);
+        return Math.sqrt(diff[0]*diff[0] + diff[1]*diff[1])
+    },
+
+    direction: function(other) {
+        var diff = this.diff(other),
+            dist = this.dist(other);
+        return [diff[0]/dist, diff[1]/dist];
     },
 
     eject: function() {
@@ -125,12 +140,6 @@ Enemy.prototype = {
         if (Math.abs(position.x-this.pos.x)<2 && Math.abs(position.y-this.pos.y)<2) {
             this.target = null;
             return;
-        }
-        if (direction == undefined) {
-            var xdiff = position.x - this.pos.x,
-                ydiff = position.y - this.pos.y,
-                dist = Math.sqrt(xdiff*xdiff + ydiff*ydiff),
-                direction = [xdiff/dist, ydiff/dist];
         }
         this.pos.x += this.speed * direction[0];
         this.pos.y += this.speed * direction[1];
@@ -167,6 +176,8 @@ Enemy.prototype = {
     },
 
     die: function() {
+        if (this.dead) return;
+
         var index = this.game.entities.indexOf(this);
         this.game.entities.splice(index, 1);
         // Set dead sprite
@@ -177,6 +188,87 @@ Enemy.prototype = {
         this.sprite.position.y -= this.height/8;
         this.game.world.removeChild(this.sprite);
         this.game.world.addChildAt(this.sprite, 0);
+
+        this.dead = true;
     }
 
 };
+
+
+
+
+
+
+
+
+
+
+var Vip = function(game, pos) {
+    Enemy.call(this, game, pos);
+    this.infected = false;
+    this.flee = false;
+    this.speed = 2.0;
+};
+Vip.prototype = new Enemy();
+Vip.prototype.constructor = Vip;
+Vip.prototype.init = function() {
+    Enemy.prototype.init.call(this);
+    this.textures[0] = PIXI.Texture.fromFrame("vipStanding0");
+    this.textures[1] = PIXI.Texture.fromFrame("vipStanding1");
+    this.sprite.setTexture(this.textures[0]);
+
+    this.healthbar = new Healthbar(this.game, {x:10, y:this.game.height-15},
+        this.game.width-20, 5, this.maxHealth).init();
+    this.healthbar.colors.default = 0x0EBFBF;
+    this.healthbar.setHealth(this.health);
+
+    return this;
+};
+Vip.prototype.updateSpritePosition = function() {
+    if (this.pos.y > this.sprite.position.y)
+        this.sprite.setTexture(this.textures[0]);
+    else
+        this.sprite.setTexture(this.textures[1]);
+    
+    Enemy.prototype.updateSpritePosition.call(this);
+};
+Vip.prototype.updateHealth = function(x) {
+    Enemy.prototype.updateHealth.call(this, x);
+    this.healthbar.setHealth(this.health);
+};
+Vip.prototype.animate = function() {
+    if (this.flee) { // Aaaargh, follow player
+        var player = this.game.player;
+        if (player)
+            this.target = player;
+    } else {
+        // Check if there are zombies around
+        for (var i in this.game.entities) {
+            var entity = this.game.entities[i];
+            if (!entity || entity == this || entity.type == "player")
+                continue;
+
+            var dist = Enemy.prototype.dist.call(this, entity);
+            if (dist < this.sight && entity.zombie)
+                this.flee = true;
+        }
+    }
+
+    Enemy.prototype.animate.call(this);
+};
+Vip.prototype.zombieMode = function() {
+    return;
+};
+Vip.prototype.zombieBehavior = function() {
+    return;
+};
+Vip.prototype.die = function() {
+    for (var i in this.game.entities) {
+        var entity = this.game.entities[i];
+        if (entity && entity.type == "enemy") {
+            entity.targets.splice(entity.targets.indexOf(this), 1);
+            entity.target = null;
+        }
+    }
+    Enemy.prototype.die.call(this);
+}

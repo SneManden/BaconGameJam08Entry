@@ -13,8 +13,8 @@ var Game = function(debug, debugLevel) {
         "img/grass.png",
         "img/woodtile.png",
         "img/black.png",
-        "img/scene.png",
-        "img/sceneFinal.png"
+        "img/sceneFinal.png",
+        "img/spritesheet_misc.json"
     ];
     this.cameraStage = new PIXI.DisplayObjectContainer();
     this.borderHorStage = new PIXI.DisplayObjectContainer();
@@ -36,13 +36,26 @@ var Game = function(debug, debugLevel) {
             name: "house",
             border: {left: 0, right: 1200, top: 0, bottom: 1600},
             background: {img: this.assets[3], tileScale: 3},
-            playerPosition: {x: 600, y: 1500},
+            playerPosition: {x: 300, y: 1564},
+            vipPosition: {x: 600, y: 1516},
             scenery: [
                 {
                     name: "performancestage",
                     position: {x: 584, y:1488},
                     width: 768, height: 128,
-                    background: {img: this.assets[6], scale: 4}
+                    background: {img: this.assets[5], scale: 4}
+                },
+                {
+                    name: "stairL", position: {x: 168, y: 1536},
+                    width: 64, height: 64,
+                    background: {img:this.assets[6], frame:"stairL", scale:4},
+                    anchor: {x: 0.5, y: 0.0}
+                },
+                {
+                    name: "stairR", position: {x: 1000, y: 1536},
+                    width: 64, height: 64,
+                    background: {img:this.assets[6], frame:"stairR", scale:4},
+                    anchor: {x: 0.5, y: 0.0}
                 }
             ],
             solids: [
@@ -50,6 +63,9 @@ var Game = function(debug, debugLevel) {
                 {   position: {x: 584, y:1500}, width:  768, height:    8, altitude: 0 },
                 {   position: {x: 200, y:1514}, width:    8, height:   36, altitude: 0 },
                 {   position: {x: 968, y:1514}, width:    8, height:   36, altitude: 0 },
+                {   position: {x: 184, y:1536}, width:   40, height:    8, altitude: 0 },
+                {   position: {x: 984, y:1536}, width:   40, height:    8, altitude: 0 },
+
                 {   position: {x: 584, y:1476}, width:  768, height:    8, altitude: 1 },
                 {   position: {x: 200, y:1500}, width:    8, height:   64, altitude: 1 },
                 {   position: {x: 968, y:1500}, width:    8, height:   64, altitude: 1 },
@@ -186,6 +202,17 @@ Game.prototype = {
         scenerySprite.scale.y = scenery.background.scale;
         this.world.addChild(scenerySprite);
 
+        var scenery = scene.scenery;
+        for (var i=1; i<scenery.length; i++) {
+            var spr = scenery[i];
+            var sprite = new PIXI.Sprite.fromFrame(spr.background.frame);
+            sprite.anchor.x = spr.anchor.x;
+            sprite.anchor.y = spr.anchor.y;
+            sprite.position = spr.position;
+            sprite.scale.x = sprite.scale.y = spr.background.scale;
+            this.world.addChild(sprite);
+        }
+
         // Solids
         var solids = scene.solids;
         for (var i=0; i<solids.length; i++) {
@@ -207,7 +234,7 @@ Game.prototype = {
         }
 
         // Enemies
-        var numEnemies = 500;
+        var numEnemies = 50;//50;//500;
         for (var j=0; j<2; j++) {
             var left = (j==0 ? 0 : (scene.border.left+scene.border.right)/2);
             var right = (j==0 ? (scene.border.left+scene.border.right)/2 : scene.border.right);
@@ -222,7 +249,19 @@ Game.prototype = {
 
         // Player
         this.player = new Player(this, scene.playerPosition).init();
+        this.player.altitude = 1;
         this.addEntity(this.player);
+
+        // Very Important Person
+        this.vip = new Vip(this, scene.vipPosition).init();
+        this.vip.altitude = 1;
+        this.addEntity(this.vip);
+
+        // Set targets for enemies
+        for (var i in this.entities) {
+            if (this.entities[i].type == "enemy")
+                this.entities[i].targets = [this.player, this.vip];
+        }
     },
 
     start: function() {
@@ -299,6 +338,6 @@ function gameLoop() {
  */
 var game;
 window.onload = function() {
-    game = new Game(true, 1);
+    game = new Game(true, 0);
     game.init(document.querySelector("#canvascontainer"));
 };
