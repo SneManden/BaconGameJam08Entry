@@ -16,6 +16,24 @@ var Game = function(debug, debugLevel) {
         "img/sceneFinal.png",
         "img/spritesheet_misc.json"
     ];
+    this.sounds = [
+        // When I Open My Eyes by unreal_dm featuring Admiral Bob @ dig.ccmixter
+        {id:"song", src:"whenIOpenMyEyes-unreal_dmFeatAdmiralBob.mp3"},
+        // DJ Death by Hans Atom featuring Kara!
+        {id:"zombies", src:"DJDeath-HansAtomFeatKara.mp3"},
+        {id:"lightsOut", src:"lightsOut.wav"},
+        {id:"zombieBrawl0", src:"zombieBrawl1.wav"},
+        {id:"zombieBrawl1", src:"zombieBrawl2.wav"},
+        {id:"zombieHit0", src:"zombieHit1.wav"},
+        {id:"zombieHit1", src:"zombieHit2.wav"},
+        {id:"zombieMode0", src:"zombieMode1.wav"},
+        {id:"zombieMode1", src:"zombieMode2.wav"},
+        {id:"doorOpen", src:"doorOpen.wav"},
+        {id:"swordHit", src:"swordHit1.wav"}
+
+    ];
+    this.assetsLoaded = false;
+    this.soundsLoaded = false;
     this.cameraStage = new PIXI.DisplayObjectContainer();
     this.borderHorStage = new PIXI.DisplayObjectContainer();
     this.borderVerStage = new PIXI.DisplayObjectContainer();
@@ -30,13 +48,16 @@ var Game = function(debug, debugLevel) {
     Util.level = (debugLevel == undefined ? 0 : debugLevel);
 
     this.ticks = 0;
+    this.zombieMode = false;
+    this.paused = false;
+    this.muted = false;
 
     this.scenes = [
         {
             name: "house",
             border: {left: 0, right: 1200, top: 0, bottom: 1600},
             background: {img: this.assets[3], tileScale: 2},
-            playerPosition: {x: 300, y: 1564},
+            playerPosition: {x: 550, y: 8},
             vipPosition: {x: 600, y: 1516},
             scenery: [
                 {
@@ -106,11 +127,60 @@ Game.prototype = {
         this.stage.addChild(this.world);
         this.stage.addChild(this.cameraStage);
         this.camera = new Camera(this, this.width, this.height);
+        // Loadingbar
+        this.setupLoadingBar();
         // Loading
+        this.loadedAssets = 0;
         this.loader = new PIXI.AssetLoader(this.assets);
         this.loader.onComplete = partial(this.onAssetsLoaded, this);
+        this.loader.onProgress = partial(this.assetLoaded, this);
         this.loader.load();
+        // Sounds
+        if (!createjs.Sound.initializeDefaultPlugins())
+            Util.log("Error: Cannot initialize sound");
+        else {
+            this.loadedSounds = 0;
+            createjs.Sound.addEventListener("fileload", partial(this.soundLoaded, this));
+            createjs.Sound.registerManifest(this.sounds, "/snd/");
+        }
         setTimeout(gameLoop, 0);
+    },
+
+    setupLoadingBar: function() {
+        this.loadingBar = new Healthbar(this, {x:this.width/4, y:this.height/2-this.height/10}, this.width/2,
+            this.height/10, this.assets.length+this.sounds.length, 0);
+        this.loadingBar.back = true;
+        this.loadingBar.colors = {default: 0xffffff, border: this.background,
+            low: 0xffffff, back: 0x000000};
+        this.loadingBar.init();
+    },
+
+    onAssetsLoaded: function(self) {
+        Util.log("Assets loaded!");
+        self.assetsLoaded = true;
+        Game.prototype.completelyLoaded.call(self);
+    },
+
+    assetLoaded: function(self) {
+        self.loadingBar.setHealth(self.loadingBar.health+1);
+        self.loadedAssets++;
+    },
+
+    soundLoaded: function(self, event) {
+        self.loadingBar.setHealth(self.loadingBar.health+1);
+        if (++self.loadedSounds == self.sounds.length) {
+            self.soundsLoaded = true;
+            Game.prototype.completelyLoaded.call(self);
+        }
+    },
+
+    completelyLoaded: function() {
+        Util.log("sounds: ", this.assetsLoaded,
+               "|", "assets: ", this.soundsLoaded);
+        if (this.soundsLoaded && this.assetsLoaded) {
+            this.loadingBar.destroy();
+            this.start();
+        }
     },
 
     setupKeyboard: function() {
@@ -137,6 +207,11 @@ Game.prototype = {
             self.player.__proto__.handleKeyUp.call(self.player, e.keyCode);
         if (self.player) // why does .prototype not work? (using .__proto__)
             self.player.__proto__.handleKeyPressed.call(self.player, e.keyCode);
+
+        if (e.keyCode == 27) // esc
+            self.pause();
+        if (e.keyCode == 77) // M
+            self.mute();
     },
 
     handleKeyPress: function(self, e) {
@@ -155,13 +230,18 @@ Game.prototype = {
         Util.log("Solids: " + this.solids.length);
     },
 
-    onAssetsLoaded: function(self) {
-        Util.log("Assets loaded");
-        self.start();
-    },
-
     setupMenu: function() {
         this.state = this.STATES.MENU;
+    },
+
+    pause: function() {
+        this.paused = !this.paused;
+        createjs.Sound.setMute(this.paused || this.muted);
+    },
+
+    mute: function() {
+        this.muted = !this.muted;
+        createjs.Sound.setMute(this.muted);
     },
 
     setScene: function() {
@@ -255,7 +335,7 @@ Game.prototype = {
         }
 
         // Enemies
-        var numEnemies = 50;//50;//500;
+        var numEnemies = 75;//50;//500;
         for (var j=0; j<2; j++) {
             var left = (j==0 ? 0 : (scene.border.left+scene.border.right)/2);
             var right = (j==0 ? (scene.border.left+scene.border.right)/2 : scene.border.right);
@@ -269,8 +349,7 @@ Game.prototype = {
         }
 
         // Player
-        var tempPos = {x: 100, y:100};
-        this.player = new Player(this, tempPos).init();//scene.playerPosition).init();
+        this.player = new Player(this, scene.playerPosition).init();
         this.player.altitude = 1;
         this.addEntity(this.player);
 
@@ -284,6 +363,9 @@ Game.prototype = {
             if (this.entities[i].type == "enemy")
                 this.entities[i].targets = [this.player, this.vip];
         }
+
+        // Start playback
+        this.song = createjs.Sound.play("song", {loop:-1, volume:0.5});
     },
 
     start: function() {
@@ -294,7 +376,7 @@ Game.prototype = {
         this.saved = [];
     },
 
-    animate: function() {
+    animatePlay: function() {
         for (var i in this.entities) {
             if (this.entities[i] !== null)
                 this.entities[i].animate();
@@ -323,33 +405,66 @@ Game.prototype = {
                 return 0;
             });
 
+        if (!this.zombieMode && this.ticks >= 60*15)//60*60)
+            this.startZombieMode();
+
         // Test win
-        this.testWin();
+        if (this.saved.indexOf(this.vip) != -1)
+            this.win();
 
         this.ticks++;
     },
 
-    testWin: function() {
-        if (this.saved.indexOf(this.vip) != -1) {
-            console.log("You win, whoooooot!");
-
+    startZombieMode: function() {
+        Util.log("ZOMBIE MODE!");
+        this.zombieMode = true;
+        for (var i in this.entities) {
+            var entity = this.entities[i];
+            if (entity.type == "enemy")
+                entity.infected = true;
+            else if (entity.type == "vip" || entity.type == "player")
+                entity.createHealthbar();
         }
+        createjs.Sound.stop();
+        var lightsOut = createjs.Sound.play("lightsOut", {loop:0, volume:1});
+        lightsOut.addEventListener("complete", function() {
+            createjs.Sound.play("zombies", {loop:-1, volume:0.5});
+        });
+    },
+
+    win: function() {
+        Util.log("YOU WIN, woooohooo!");
+        this.pause();
+    },
+
+    gameover: function() {
+        Util.log("YOU LOSE, daaaaarn!");
+        this.pause();
+    },
+
+    update: function() {
+        switch (this.state) {
+            case this.STATES.PLAY: this.animatePlay(); break;
+            case this.STATES.MENU: this.animateMenu(); break;
+            case this.STATES.LOADING: this.animateLoading(); break;
+            default: return;
+        }
+        // if (this.paused)
+        //     ;// Do something
     },
 
     animateLoading: function() {
-        //
+        return;
     },
 
     animateMenu: function() {
         //
     },
 
-    animatePlay: function() {
-        //
-    },
-
     tick: function() {
-        this.animate();
+        if (this.paused) return;
+
+        this.update();
         this.renderer.render(this.stage);
     }
 

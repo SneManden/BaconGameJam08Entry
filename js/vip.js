@@ -3,6 +3,7 @@ var Vip = function(game, pos) {
     this.infected = false;
     this.flee = false;
     this.speed = 2.0;
+    this.type = "vip";
 };
 Vip.prototype = new Enemy();
 Vip.prototype.constructor = Vip;
@@ -13,12 +14,13 @@ Vip.prototype.init = function() {
     this.textures[2] = PIXI.Texture.fromFrame("vipDead");
     this.sprite.setTexture(this.textures[0]);
 
+    return this;
+};
+Vip.prototype.createHealthbar = function() {
     this.healthbar = new Healthbar(this.game, {x:10, y:this.game.height-15},
         this.game.width-20, 5, this.maxHealth).init();
     this.healthbar.colors.default = 0x0EBFBF;
     this.healthbar.setHealth(this.health);
-
-    return this;
 };
 Vip.prototype.updateSpritePosition = function() {
     if (this.pos.y > this.sprite.position.y)

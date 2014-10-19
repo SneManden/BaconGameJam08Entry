@@ -29,9 +29,13 @@ var Enemy = function(game, pos) {
     this.targets = [];
     this.gotoPos = null;
 
-    this.infected = true;
+    this.zombieChance = 0.05;
+    this.infected = false;
     this.flee = false;
     this.dead = false;
+
+    this.brawlDealy = 60*6;
+    this.randomNumber = Util.getRandomInt(0.5, 1.0);
 };
 Enemy.prototype = {
 
@@ -72,6 +76,19 @@ Enemy.prototype = {
                 this.target = other;
             if (dist<=this.range*(1-0.5*Math.abs(this.altitude-other.altitude)))
                 this.attack(other, direction);
+        }
+
+        return;
+        var player = this.game.player;
+        var volume = 0.3;
+        if (player && this.ticks % this.brawlDealy*this.randomNumber == 0) {
+            var dist = this.dist(player);
+            if (dist < 100)
+                volume = volume;
+            else if (dist < this.sight) 
+                volume = (dist == 0 ? volume : 15/dist);
+            if (dist < 2*this.sight)
+                createjs.Sound.play( "zombieBrawl" + 1);//Math.round(Math.random()) );
         }
     },
 
@@ -121,7 +138,7 @@ Enemy.prototype = {
 
         // Transform into a zombie
         if (this.infected && !this.zombie
-         && this.ticks % 60 == 0 && Math.random() < 0.01)//0.0035)
+         && this.ticks % 60 == 0 && Math.random() < this.zombieChance)//0.0035)
             this.zombieMode();
 
         this.updateSpritePosition();
@@ -159,6 +176,8 @@ Enemy.prototype = {
 
     attack: function(other, direction) {
         if (this.canAttack) {
+            createjs.Sound.play("zombieHit" + Math.round(Math.random()),
+                {volume:0.3});
             other.hit(this.damage);
             other.pos.x -= direction[0]*this.damage/2;
             other.pos.y -= direction[1]*this.damage/2;
@@ -245,7 +264,11 @@ Enemy.prototype = {
         this.zombie = true;
         this.sprite.setTexture( this.textures[1] );
         this.speed = this.speeds.zombie;
-        Util.log("One more zombie");
+
+        // if (this.game.player && this.dist(this.game.player) < this.sight*2)
+        //     createjs.Sound.play("zombieMode" + Math.round(Math.random()),
+        //         {volume:0.3});
+        // Util.log("One more zombie");
     },
 
     normalMode: function() {
@@ -286,6 +309,10 @@ Enemy.prototype = {
         this.game.world.addChildAt(this.sprite, 0);
 
         this.dead = true;
+
+        // Lose
+        if (!this.zombie)
+            this.game.gameover();
     }
 
 };

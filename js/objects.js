@@ -44,8 +44,12 @@ Door.prototype = {
     },
 
     open: function() {
+        if (!this.closed) return;
+
         this.closed = false;
         this.sprite.setTexture(this.textures.opened);
+
+        createjs.Sound.play("doorOpen", {volume:0.8});
     },
 
     dist: function(other) {

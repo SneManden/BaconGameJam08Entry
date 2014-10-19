@@ -26,7 +26,7 @@ var Player = function(game, pos) {
     this.damage = 10;
     // Helper variables
     this.canSlash = true;
-    this.direction = 0;
+    this.direction = 1;
 
     this.dead = false;
 };
@@ -42,7 +42,7 @@ Player.prototype = {
             this.textures.push( PIXI.Texture.fromFrame("playerSlash"+j) );
         }
         // Set sprite
-        this.sprite = new PIXI.Sprite(this.textures[0]);
+        this.sprite = new PIXI.Sprite(this.textures[4*this.direction]);
         this.sprite.anchor.x = 0.5;
         this.sprite.anchor.y = 0.55;
         this.sprite.scale.x = this.scale;
@@ -53,11 +53,12 @@ Player.prototype = {
         this.width = 16;
         this.height = 32;
 
-        // Healthbar
-        this.healthbar = new Healthbar(this.game, {x:10, y:10}, this.game.width-20, 5,
-            this.maxHealth).init();
-
         return this;
+    },
+
+    createHealthbar: function() {
+        this.healthbar = new Healthbar(this.game, {x:10, y:10},
+            this.game.width-20, 5, this.maxHealth).init();
     },
 
     updateSpritePosition: function(x,y) {
@@ -120,6 +121,7 @@ Player.prototype = {
                 // Deal damage (half range if different altitude)
                 if (dist <= this.range*(1-0.5*Math.abs(this.altitude-other.altitude))) {
                     other.hit(this.damage);
+                    createjs.Sound.play("swordHit", {volume:0.3});
                     other.pos.x -= xdiff/dist*this.damage/2;
                     other.pos.y -= ydiff/dist*this.damage/2;
                 }

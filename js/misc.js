@@ -33,8 +33,9 @@ var Healthbar = function(game, pos, width, height, maxHealth, health, low) {
     this.health = (health == undefined ? maxHealth : health);
     this.low = (low == undefined ? maxHealth*0.1 : low);
 
-    this.colors = {default:0x31BF24, low:0xBF2424, border:0x000000};
+    this.colors = {default:0x31BF24, low:0xBF2424, border:0x000000, back:0x000000};
     this.border = true;
+    this.back = false;
 };
 Healthbar.prototype = {
 
@@ -51,6 +52,11 @@ Healthbar.prototype = {
             bar.drawRect(this.pos.x-1,this.pos.y-1,this.width+2,this.height+2);
             bar.endFill();
         }
+        if (this.back) {
+            bar.beginFill(this.colors.back);
+            bar.drawRect(this.pos.x,this.pos.y,this.width,this.height);
+            bar.endFill();
+        }
         var fillColor = (this.health <= this.low ?
             this.colors.low : this.colors.default);
         var scale = this.width*(Math.max(0, this.health)/this.maxHealth);
@@ -61,8 +67,8 @@ Healthbar.prototype = {
     },
 
     setHealth: function(health) {
-        if (this.health <= 0) return;
-        this.health = health;
+        // if (this.health <= 0) return;
+        this.health = Math.max(0, health);
         this.game.cameraStage.removeChild(this.bar);
         this.bar = this.draw();
         this.game.cameraStage.addChild(this.bar);
@@ -70,6 +76,10 @@ Healthbar.prototype = {
 
     animate: function() {
         return;
+    },
+
+    destroy: function() {
+        this.game.cameraStage.removeChild(this.bar);
     }
 
 };
