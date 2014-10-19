@@ -35,7 +35,7 @@ var Game = function(debug, debugLevel) {
         {
             name: "house",
             border: {left: 0, right: 1200, top: 0, bottom: 1600},
-            background: {img: this.assets[3], tileScale: 3},
+            background: {img: this.assets[3], tileScale: 2},
             playerPosition: {x: 300, y: 1564},
             vipPosition: {x: 600, y: 1516},
             scenery: [
@@ -72,7 +72,7 @@ var Game = function(debug, debugLevel) {
                 // Border solids
                 {   position: {x: -16, y: 800}, width:   32, height: 1600 }, // left
                 {   position: {x:1216, y: 800}, width:   32, height: 1600 }, // right
-                {   position: {x: 600, y: -16}, width: 1200, height:   32 }, // top
+                {   position: {x: 600, y: -16-16}, width: 1200, height:   32 }, // top
                 {   position: {x: 600, y:1616}, width: 1200, height:   32 }  // bottom
             ],
             altControls: [
@@ -213,6 +213,27 @@ Game.prototype = {
             this.world.addChild(sprite);
         }
 
+        var wallTexture = PIXI.Texture.fromFrame("wallpaper");
+        for (var i=0; i<(scene.border.right-scene.border.left)/(16*2); i++) {
+            if (i>17 && i<21) {
+                if (!this.door) {
+                    this.door = new Door(this, {x:(i*16+24)*2, y:-24*2}).init();
+                    this.addEntity(this.door);
+                }
+                continue;
+            }
+            var sprite = new PIXI.Sprite(wallTexture);
+            var scale = 2;
+            sprite.anchor.x = 0.0;
+            sprite.anchor.y = 0.0;
+            sprite.position.x = i*sprite.width*scale;
+            sprite.position.y = -sprite.height*scale;
+            sprite.scale.x = scale;
+            sprite.scale.y = scale;
+            this.world.addChild(sprite);
+        }
+        sprite.width = 16; // Adjust last sprite so as to fit scene
+
         // Solids
         var solids = scene.solids;
         for (var i=0; i<solids.length; i++) {
@@ -248,7 +269,8 @@ Game.prototype = {
         }
 
         // Player
-        this.player = new Player(this, scene.playerPosition).init();
+        var tempPos = {x: 100, y:100};
+        this.player = new Player(this, tempPos).init();//scene.playerPosition).init();
         this.player.altitude = 1;
         this.addEntity(this.player);
 
@@ -269,6 +291,7 @@ Game.prototype = {
         this.state = this.STATES.PLAY;
 
         this.setScene();
+        this.saved = [];
     },
 
     animate: function() {
@@ -281,8 +304,9 @@ Game.prototype = {
         if (!this.player) return;
         this.camera.follow(this.player.sprite);
         // Set tiling background
-        this.background.tilePosition.x = this.world.position.x/3;
-        this.background.tilePosition.y = this.world.position.y/3;
+        var scale = this.scenes[this.scene].background.tileScale;
+        this.background.tilePosition.x = this.world.position.x/scale;
+        this.background.tilePosition.y = this.world.position.y/scale;
         // Set tiling border
         for (var i in this.borderSprites) {
             if (i == 2 || i == 3)
@@ -291,7 +315,6 @@ Game.prototype = {
                 this.borderSprites[i].tilePosition.y = this.world.position.y;
         }
 
-
         // Sort by "depth" once a second (for correct order of drawing entities)
         if (this.ticks % 10 == 0)
             this.world.children.sort(function(a,b) {
@@ -299,7 +322,18 @@ Game.prototype = {
                 if (a.position.y > b.position.y) return 1;
                 return 0;
             });
+
+        // Test win
+        this.testWin();
+
         this.ticks++;
+    },
+
+    testWin: function() {
+        if (this.saved.indexOf(this.vip) != -1) {
+            console.log("You win, whoooooot!");
+
+        }
     },
 
     animateLoading: function() {

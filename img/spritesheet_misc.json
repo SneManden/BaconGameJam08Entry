@@ -9,11 +9,33 @@
         },
         "stairR": {
             "frame": {"x":16, "y": 0, "w": 16, "h": 16},
-            "rotated": true,
+            "rotated": false,
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
             "sourceSize": {"w:": 16, "h": 16}
         },
+        "wallpaper": {
+            "frame": {"x":32, "y": 0, "w": 16, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 48},
+            "sourceSize": {"w:": 16, "h": 48}
+        },
+        "doorClosed": {
+            "frame": {"x":48, "y": 0, "w": 48, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 48, "h": 48},
+            "sourceSize": {"w:": 48, "h": 48}
+        },
+        "doorOpened": {
+            "frame": {"x":48, "y": 48, "w": 48, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 48, "h": 48},
+            "sourceSize": {"w:": 48, "h": 48}
+        },
+
 
 
         "vipStanding0": {
@@ -29,6 +51,13 @@
             "trimmed": false,
             "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 32},
             "sourceSize": {"w:": 16, "h": 32}
+        },
+        "vipDead": {
+            "frame": {"x":32, "y": 112, "w": 16, "h": 16},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x":0, "y": 0, "w": 16, "h": 16},
+            "sourceSize": {"w:": 16, "h": 16}
         }
     },
 
